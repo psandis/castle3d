@@ -16,15 +16,15 @@ controls.maxDistance = 50;
 
 // Texture Loader
 const textureLoader = new THREE.TextureLoader();
-const stoneTexture = textureLoader.load('./textures/stone_wall_08_diff_1k.jpg');
+const stoneTexture = textureLoader.load('textures/bricks.jpg'); // Stone wall
 stoneTexture.wrapS = stoneTexture.wrapT = THREE.RepeatWrapping;
 stoneTexture.repeat.set(2, 2);
 
-const roofTexture = textureLoader.load('./textures/roof_tiles_05_diff_1k.jpg');
+const roofTexture = textureLoader.load('textures/roof.jpg'); // Roof tiles
 roofTexture.wrapS = roofTexture.wrapT = THREE.RepeatWrapping;
 roofTexture.repeat.set(4, 4);
 
-const groundTexture = textureLoader.load('./textures/grass_02_diff_1k.jpg');
+const groundTexture = textureLoader.load('textures/grass.jpg'); // Grass
 groundTexture.wrapS = groundTexture.wrapT = THREE.RepeatWrapping;
 groundTexture.repeat.set(10, 10);
 
