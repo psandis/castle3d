@@ -1,0 +1,5 @@
+# Ignore node_modules (if you add npm later)
+node_modules/
+# Ignore temporary files
+*.log
+.DS_Store
