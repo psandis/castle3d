@@ -1,4 +1,4 @@
-import { castle } from './main.js'; // Import castle group
+import { castle, toggleDrawbridge } from './main.js'; // Import castle group and drawbridge toggle
 
 // Movement Functions
 const moveDistance = 1;
@@ -20,3 +20,4 @@ document.getElementById('moveUp').addEventListener('click', () => moveCastle('up
 document.getElementById('moveDown').addEventListener('click', () => moveCastle('down'));
 document.getElementById('moveForward').addEventListener('click', () => moveCastle('forward'));
 document.getElementById('moveBackward').addEventListener('click', () => moveCastle('backward'));
+document.getElementById('toggleDrawbridge').addEventListener('click', () => toggleDrawbridge());

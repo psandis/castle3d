@@ -148,6 +148,40 @@ const archTop = new THREE.Mesh(archTopGeometry, stoneMaterial);
 archTop.position.set(0, wallHeight - archTopHeight / 2, 10 - wallThickness / 2);
 castle.add(archTop);
 
+// Drawbridge - positioned at the arch opening
+const drawbridgeWidth = entryWidth - 0.2;
+const drawbridgeLength = 5; // Slightly smaller height
+const drawbridgeThickness = 0.25; // Slightly thinner
+
+// Create pivot group at the bottom of the archway opening (outside the wall)
+export const drawbridgePivot = new THREE.Group();
+// Position slightly outside the front face of the wall, ground level, centered in arch opening
+// When raised, drawbridge will touch the wall from outside
+drawbridgePivot.position.set(0, 0, 10 + 0.1);
+castle.add(drawbridgePivot);
+
+// Create drawbridge geometry - pivot at the bottom edge
+const drawbridgeGeometry = new THREE.BoxGeometry(drawbridgeWidth, drawbridgeThickness, drawbridgeLength);
+// Offset geometry so it rotates from the bottom edge (at the pivot point)
+drawbridgeGeometry.translate(0, 0, drawbridgeLength / 2);
+
+const drawbridge = new THREE.Mesh(drawbridgeGeometry, stoneMaterial);
+// Start vertical (blocking the arch opening)
+drawbridge.rotation.x = -Math.PI / 2;
+drawbridge.castShadow = true;
+drawbridge.receiveShadow = true;
+drawbridgePivot.add(drawbridge);
+
+// Drawbridge state - rotation is relative to the mesh's initial -PI/2 rotation
+const drawbridgeRaisedAngle = 0; // Vertical (blocking entrance) - mesh is already rotated -PI/2, so pivot at 0 = vertical
+const drawbridgeLoweredAngle = Math.PI / 2; // Horizontal (bridge lowered outward) - pivot rotates +PI/2, mesh becomes horizontal
+let drawbridgeOpen = false;
+
+export function toggleDrawbridge() {
+    drawbridgeOpen = !drawbridgeOpen;
+}
+
+
 const wall2 = new THREE.Mesh(wallGeometry, stoneMaterial);
 wall2.position.set(0, 2.5, -10);
 castle.add(wall2);
@@ -302,6 +336,9 @@ function animate() {
     requestAnimationFrame(animate);
     controls.update();
 
+    // Animate drawbridge rotation
+    const targetRotation = drawbridgeOpen ? drawbridgeLoweredAngle : drawbridgeRaisedAngle;
+    drawbridgePivot.rotation.x += (targetRotation - drawbridgePivot.rotation.x) * 0.05;
 
 
     renderer.render(scene, camera);
