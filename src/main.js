@@ -255,6 +255,36 @@ const tower4 = new THREE.Mesh(towerGeometry, stoneMaterial);
 tower4.position.set(-10, 6, -10);
 castle.add(tower4);
 
+// Tower battlements - add crenellations around the top of each tower
+const towerBattlementGeometry = new THREE.BoxGeometry(0.6, 0.8, 0.4);
+const towerRadius = 2;
+const towerTop = 12;
+const battlementsPerTower = 8;
+const towerPositions = [
+    { x: 10, z: 10 },   // tower1
+    { x: -10, z: 10 },  // tower2
+    { x: 10, z: -10 },  // tower3
+    { x: -10, z: -10 }  // tower4
+];
+
+towerPositions.forEach(towerPos => {
+    for (let i = 0; i < battlementsPerTower; i++) {
+        const angle = (i / battlementsPerTower) * Math.PI * 2;
+        const battlement = new THREE.Mesh(towerBattlementGeometry, stoneMaterial);
+
+        // Position battlement on the rim of the tower
+        const x = towerPos.x + Math.cos(angle) * towerRadius;
+        const z = towerPos.z + Math.sin(angle) * towerRadius;
+        battlement.position.set(x, towerTop + 0.4, z);
+
+        // Rotate battlement to face outward
+        battlement.rotation.y = angle;
+
+        castle.add(battlement);
+    }
+});
+
+
 const roofGeometry = new THREE.ConeGeometry(2.5, 4, 32);
 const roof1 = new THREE.Mesh(roofGeometry, roofMaterial);
 roof1.position.set(10, 10, 10);
@@ -271,6 +301,39 @@ castle.add(roof3);
 const roof4 = new THREE.Mesh(roofGeometry, roofMaterial);
 roof4.position.set(-10, 10, -10);
 castle.add(roof4);
+
+// Flags on top of each tower
+// Tower height: y=6, height=12, so top at y=12
+// Roof: y=10, cone height=4, so top of roof at y=12
+const flagPoleHeight = 2.5;
+const flagPoleGeometry = new THREE.CylinderGeometry(0.08, 0.08, flagPoleHeight, 8);
+const flagPoleMaterial = new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.5 });
+const flagGeometry = new THREE.PlaneGeometry(1.2, 0.8);
+const flagMaterial = new THREE.MeshStandardMaterial({
+    color: 0xcc0000, // Red flag
+    side: THREE.DoubleSide,
+    roughness: 0.7
+});
+
+towerPositions.forEach(towerPos => {
+    // Flag pole - starts at top of tower roof (y=12), extends upward
+    const flagPole = new THREE.Mesh(flagPoleGeometry, flagPoleMaterial);
+    flagPole.position.set(towerPos.x, 12 + flagPoleHeight / 2, towerPos.z); // Base at roof top, center at midpoint
+    castle.add(flagPole);
+
+    // Flag - attached directly to top of pole, calculate direction to face outward from center
+    const flag = new THREE.Mesh(flagGeometry.clone(), flagMaterial); // Clone geometry so we can modify it
+    // Calculate angle to face outward from castle center
+    const angle = Math.atan2(towerPos.x, towerPos.z);
+    const poleTopY = 12 + flagPoleHeight; // Top of the pole
+    // Position flag directly at top of pole (no offset)
+    flag.position.set(towerPos.x, poleTopY, towerPos.z);
+    flag.rotation.y = angle; // Face outward from center
+    // Translate flag geometry so it extends from the pole (flag attaches at its left edge to pole)
+    flag.geometry.translate(0.6, 0, 0); // Move flag geometry to extend from pole center
+    castle.add(flag);
+});
+
 
 // Keep with original stone material
 const keepGeometry = new THREE.BoxGeometry(10, 10, 10);
