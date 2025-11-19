@@ -123,9 +123,30 @@ for (let i = -9; i <= 9; i += 2) {
     battlement2.position.set(i, 5, -10);
     castle.add(battlement2);
 }
-const wall1 = new THREE.Mesh(wallGeometry, stoneMaterial);
-wall1.position.set(0, 2.5, 10);
-castle.add(wall1);
+// Front wall with archway - using two separate wall segments
+const wallWidth = 20;
+const wallHeight = 5;
+const wallThickness = 0.5;
+const entryWidth = 5;
+
+// Left wall segment
+const leftWallGeometry = new THREE.BoxGeometry((wallWidth - entryWidth) / 2, wallHeight, wallThickness);
+const leftWall = new THREE.Mesh(leftWallGeometry, stoneMaterial);
+leftWall.position.set(-wallWidth / 4 - entryWidth / 4, wallHeight / 2, 10 - wallThickness / 2);
+castle.add(leftWall);
+
+// Right wall segment
+const rightWallGeometry = new THREE.BoxGeometry((wallWidth - entryWidth) / 2, wallHeight, wallThickness);
+const rightWall = new THREE.Mesh(rightWallGeometry, stoneMaterial);
+rightWall.position.set(wallWidth / 4 + entryWidth / 4, wallHeight / 2, 10 - wallThickness / 2);
+castle.add(rightWall);
+
+// Top arch piece
+const archTopHeight = wallHeight - 3.5;
+const archTopGeometry = new THREE.BoxGeometry(entryWidth, archTopHeight, wallThickness);
+const archTop = new THREE.Mesh(archTopGeometry, stoneMaterial);
+archTop.position.set(0, wallHeight - archTopHeight / 2, 10 - wallThickness / 2);
+castle.add(archTop);
 
 const wall2 = new THREE.Mesh(wallGeometry, stoneMaterial);
 wall2.position.set(0, 2.5, -10);
@@ -141,44 +162,7 @@ wall4.rotation.y = Math.PI / 2;
 wall4.position.set(-10, 2.5, 0);
 castle.add(wall4);
 
-// Gate - split into two halves that can open
-const gateGroup = new THREE.Group();
 
-// Left gate half - pivot at right edge (center of opening)
-const gateLeftPivot = new THREE.Group();
-const gateLeftGeometry = new THREE.BoxGeometry(2, 3, 0.6);
-const gateLeft = new THREE.Mesh(gateLeftGeometry, stoneMaterial);
-gateLeft.position.set(-1, 0, 0); // Position relative to pivot
-gateLeftPivot.position.set(0, 0, 0); // Pivot at center (x=0)
-gateLeftPivot.add(gateLeft);
-gateGroup.add(gateLeftPivot);
-
-// Right gate half - pivot at left edge (center of opening)
-const gateRightPivot = new THREE.Group();
-const gateRightGeometry = new THREE.BoxGeometry(2, 3, 0.6);
-const gateRight = new THREE.Mesh(gateRightGeometry, stoneMaterial);
-gateRight.position.set(1, 0, 0); // Position relative to pivot
-gateRightPivot.position.set(0, 0, 0); // Pivot at center (x=0)
-gateRightPivot.add(gateRight);
-gateGroup.add(gateRightPivot);
-
-gateGroup.position.set(0, 1.5, 10.1);
-castle.add(gateGroup);
-
-// Metal gate decorations
-const gateRingGeometry = new THREE.TorusGeometry(0.3, 0.05, 8, 16);
-const gateRing1 = new THREE.Mesh(gateRingGeometry, metalMaterial);
-gateRing1.position.set(-1, 1.5, 10.2);
-castle.add(gateRing1);
-const gateRing2 = new THREE.Mesh(gateRingGeometry, metalMaterial);
-gateRing2.position.set(1, 1.5, 10.2);
-castle.add(gateRing2);
-
-// Gate state
-let gateOpen = false;
-export function toggleGate() {
-    gateOpen = !gateOpen;
-}
 
 const towerGeometry = new THREE.CylinderGeometry(2, 2, 12, 32);
 const tower1 = new THREE.Mesh(towerGeometry, stoneMaterial);
@@ -228,7 +212,7 @@ castle.add(keepRoof);
 
 // Windows with metal frames
 const windowGeometry = new THREE.PlaneGeometry(1, 1.5);
-const windowMaterial = new THREE.MeshStandardMaterial({ 
+const windowMaterial = new THREE.MeshStandardMaterial({
     color: 0x333333,
     side: THREE.DoubleSide
 });
@@ -278,7 +262,7 @@ hole.quadraticCurveTo(-halfInner, -halfInner, -halfInner + cornerRadius, -halfIn
 moatShape.holes.push(hole);
 
 const moatGeometry = new THREE.ShapeGeometry(moatShape);
-const waterMaterial = new THREE.MeshStandardMaterial({ 
+const waterMaterial = new THREE.MeshStandardMaterial({
     color: 0x006994,
     roughness: 0.1,
     metalness: 0.3,
@@ -301,7 +285,7 @@ directionalLight.position.set(20, 30, 20);
 directionalLight.castShadow = true;
 scene.add(directionalLight);
 renderer.shadowMap.enabled = true;
-castle.traverse(obj => { 
+castle.traverse(obj => {
     if (obj.isMesh) {
         obj.castShadow = obj.receiveShadow = true;
         // Don't cast shadow from keep or receive on ground
@@ -317,14 +301,9 @@ camera.position.set(20, 15, 20);
 function animate() {
     requestAnimationFrame(animate);
     controls.update();
-    
-    // Animate gate opening/closing
-    const targetRotation = gateOpen ? Math.PI / 2 : 0;
-    const gateLeftPivot = gateGroup.children[0];
-    const gateRightPivot = gateGroup.children[1];
-    gateLeftPivot.rotation.y += (targetRotation - gateLeftPivot.rotation.y) * 0.1;
-    gateRightPivot.rotation.y += (-targetRotation - gateRightPivot.rotation.y) * 0.1;
-    
+
+
+
     renderer.render(scene, camera);
 }
 animate();
