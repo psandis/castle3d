@@ -181,6 +181,46 @@ export function toggleDrawbridge() {
     drawbridgeOpen = !drawbridgeOpen;
 }
 
+// Drawbridge chains - connect from top of wall to far end of drawbridge
+const chainRadius = 0.06;
+const chainSegments = 8;
+
+// Chain anchor points on the wall (above the archway)
+const chainAnchorHeight = wallHeight + 0.5;
+const chainAnchorZ = 10 - wallThickness / 2;
+const chainOffsetX = drawbridgeWidth / 2 - 0.3; // Position chains near the edges
+
+// Create attachment points on the drawbridge (at the far end)
+const leftChainAttach = new THREE.Object3D();
+leftChainAttach.position.set(-chainOffsetX, 0, drawbridgeLength);
+drawbridge.add(leftChainAttach);
+
+const rightChainAttach = new THREE.Object3D();
+rightChainAttach.position.set(chainOffsetX, 0, drawbridgeLength);
+drawbridge.add(rightChainAttach);
+
+// Create chain meshes
+const chainGeometry = new THREE.CylinderGeometry(chainRadius, chainRadius, 1, chainSegments);
+const leftChain = new THREE.Mesh(chainGeometry, metalMaterial);
+const rightChain = new THREE.Mesh(chainGeometry, metalMaterial);
+leftChain.castShadow = true;
+rightChain.castShadow = true;
+castle.add(leftChain);
+castle.add(rightChain);
+
+// Store chain data for animation
+export const drawbridgeChains = [
+    {
+        mesh: leftChain,
+        anchor: new THREE.Vector3(-chainOffsetX, chainAnchorHeight, chainAnchorZ),
+        attachObject: leftChainAttach
+    },
+    {
+        mesh: rightChain,
+        anchor: new THREE.Vector3(chainOffsetX, chainAnchorHeight, chainAnchorZ),
+        attachObject: rightChainAttach
+    }
+];
 
 const wall2 = new THREE.Mesh(wallGeometry, stoneMaterial);
 wall2.position.set(0, 2.5, -10);
@@ -340,6 +380,30 @@ function animate() {
     const targetRotation = drawbridgeOpen ? drawbridgeLoweredAngle : drawbridgeRaisedAngle;
     drawbridgePivot.rotation.x += (targetRotation - drawbridgePivot.rotation.x) * 0.05;
 
+    // Update chain positions to connect anchors to drawbridge attachment points
+    const upVector = new THREE.Vector3(0, 1, 0);
+    const chainAttachTemp = new THREE.Vector3();
+    const chainDirection = new THREE.Vector3();
+    const chainMidpoint = new THREE.Vector3();
+
+    drawbridgeChains.forEach(chain => {
+        // Get world position of the attachment point on the drawbridge
+        chain.attachObject.getWorldPosition(chainAttachTemp);
+
+        // Calculate direction from anchor to attachment point
+        chainDirection.copy(chainAttachTemp).sub(chain.anchor);
+        const length = chainDirection.length();
+
+        // Position chain at midpoint between anchor and attachment
+        chainMidpoint.copy(chainAttachTemp).add(chain.anchor).multiplyScalar(0.5);
+        chain.mesh.position.copy(chainMidpoint);
+
+        // Scale chain to match distance
+        chain.mesh.scale.set(1, length, 1);
+
+        // Rotate chain to point from anchor to attachment
+        chain.mesh.quaternion.setFromUnitVectors(upVector, chainDirection.normalize());
+    });
 
     renderer.render(scene, camera);
 }
