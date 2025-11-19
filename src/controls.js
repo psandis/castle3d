@@ -1,4 +1,5 @@
 import { castle } from './main.js'; // Import castle group
+import { toggleGate } from './main.js'; // Import gate toggle function
 
 // Movement Functions
 const moveDistance = 1;
@@ -20,3 +21,4 @@ document.getElementById('moveUp').addEventListener('click', () => moveCastle('up
 document.getElementById('moveDown').addEventListener('click', () => moveCastle('down'));
 document.getElementById('moveForward').addEventListener('click', () => moveCastle('forward'));
 document.getElementById('moveBackward').addEventListener('click', () => moveCastle('backward'));
+document.getElementById('toggleGate').addEventListener('click', () => toggleGate());
