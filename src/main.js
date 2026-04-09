@@ -647,8 +647,10 @@ function spawnCatapult(id, config, path, speed = 2) {
         const groundY = scaleAndGround(catapult, 3);
         const char = createCharacter(catapult, config, path, speed, groundY);
         char.facingOffset = Math.PI;
+        char.isCatapult = true;
         scene.add(catapult);
         characters.push(char);
+        catapultChars.push(char);
     });
 }
 
@@ -676,35 +678,61 @@ renderer.domElement.addEventListener('click', (event) => {
     for (const char of characters) {
         const intersects = raycaster.intersectObject(char.model, true);
         if (intersects.length > 0) {
-            char.moving = !char.moving;
-            if (char.walkAction) {
-                char.walkAction.paused = !char.moving;
+            if (char.isCatapult) {
+                fireFromCatapult(char);
+            } else {
+                char.moving = !char.moving;
+                if (char.walkAction) {
+                    char.walkAction.paused = !char.moving;
+                }
             }
             break;
         }
     }
 });
 
-// March knight groups
-export function marchNorth() {
-    knightGroups.north.forEach(char => {
-        char.moving = true;
-        if (char.walkAction) char.walkAction.paused = false;
+// March sound
+const marchAudio = new Audio('src/sounds/freesound_community-marching-loop-32908.mp3');
+marchAudio.loop = true;
+let marchingSoundCount = 0;
+
+function startMarchSound() {
+    marchingSoundCount++;
+    if (marchAudio.paused) marchAudio.play();
+}
+
+function stopMarchSound() {
+    marchingSoundCount = Math.max(0, marchingSoundCount - 1);
+    if (marchingSoundCount === 0) {
+        marchAudio.pause();
+        marchAudio.currentTime = 0;
+    }
+}
+
+// March knight groups — toggle on/off
+function toggleGroup(group) {
+    const anyMoving = group.some(c => c.moving);
+    group.forEach(char => {
+        char.moving = !anyMoving;
+        if (char.walkAction) char.walkAction.paused = anyMoving;
     });
+    if (!anyMoving) {
+        startMarchSound();
+    } else {
+        stopMarchSound();
+    }
+}
+
+export function marchNorth() {
+    toggleGroup(knightGroups.north);
 }
 
 export function marchEast() {
-    knightGroups.east.forEach(char => {
-        char.moving = true;
-        if (char.walkAction) char.walkAction.paused = false;
-    });
+    toggleGroup(knightGroups.east);
 }
 
 export function marchWest() {
-    knightGroups.west.forEach(char => {
-        char.moving = true;
-        if (char.walkAction) char.walkAction.paused = false;
-    });
+    toggleGroup(knightGroups.west);
 }
 
 // Boulder projectile system
@@ -712,25 +740,40 @@ const boulders = [];
 const boulderGeometry = new THREE.SphereGeometry(0.5, 8, 8);
 const boulderMaterial = new THREE.MeshStandardMaterial({ color: 0x666666, roughness: 0.9 });
 
-export function fireCatapult() {
-    // Find the first catapult
-    const catapultChar = characters.find(c => c.model && c.facingOffset === Math.PI);
-    if (!catapultChar) return;
+// Track catapult characters
+const catapultChars = [];
 
-    const startPos = catapultChar.model.position.clone();
-    startPos.y += 3; // Launch from top of catapult
+const catapultSound = new Audio('src/sounds/freesound_community-falling-bomb-41038.mp3');
+
+function fireFromCatapult(cat) {
+    const sfx = catapultSound.cloneNode();
+    sfx.play();
+
+    const startPos = cat.model.position.clone();
+    startPos.y += 3;
 
     const boulder = new THREE.Mesh(boulderGeometry, boulderMaterial);
     boulder.position.copy(startPos);
     scene.add(boulder);
 
+    // Random target within castle walls
+    const targetX = (Math.random() - 0.5) * 16;
+    const targetZ = (Math.random() - 0.5) * 16;
+
     boulders.push({
         mesh: boulder,
         start: startPos.clone(),
-        target: new THREE.Vector3(0, 0, 0), // Aim at castle center
+        target: new THREE.Vector3(targetX, 0, targetZ),
         time: 0,
-        duration: 2,
+        duration: 2 + Math.random() * 0.5,
         active: true
+    });
+}
+
+// Fire all catapults from button
+export function fireCatapult() {
+    catapultChars.forEach((cat, i) => {
+        setTimeout(() => fireFromCatapult(cat), i * 300);
     });
 }
 
@@ -797,6 +840,16 @@ function animate() {
             if (char.walkAction) char.walkAction.paused = true;
         }
     });
+
+    // Check if any marching group has fully stopped — update sound
+    const groupsMarching = Object.values(knightGroups).filter(g => g.some(c => c.moving)).length;
+    if (groupsMarching !== marchingSoundCount) {
+        marchingSoundCount = groupsMarching;
+        if (marchingSoundCount === 0) {
+            marchAudio.pause();
+            marchAudio.currentTime = 0;
+        }
+    }
 
     // Animate boulders in parabolic arc
     boulders.forEach(b => {
