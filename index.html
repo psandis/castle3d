@@ -148,6 +148,62 @@
             display: none;
         }
 
+        #splash {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        #splash-content {
+            text-align: center;
+            font-family: 'MedievalSharp', serif;
+        }
+
+        #splash h1 {
+            color: #d4a843;
+            font-size: 48px;
+            margin: 0 0 8px;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+        }
+
+        #splash p {
+            color: #b8944a;
+            font-size: 16px;
+            margin: 0 0 30px;
+        }
+
+        #enterBtn {
+            font-family: 'MedievalSharp', serif;
+            font-size: 20px;
+            color: #e8d5a3;
+            background-color: #3a2510;
+            border: 2px solid #8b6914;
+            border-radius: 6px;
+            padding: 14px 40px;
+            cursor: pointer;
+            transition: background-color 0.2s, box-shadow 0.2s;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        #enterBtn:hover {
+            background-color: #4e3218;
+            box-shadow: 0 0 16px rgba(212, 168, 67, 0.4);
+        }
+
+        #splash.hidden {
+            display: none;
+        }
+
         @media (max-width: 480px) {
             #controls {
                 left: 12px;
@@ -164,6 +220,17 @@
 </head>
 
 <body>
+    <div id="splash">
+        <div id="splash-content">
+            <h1>Castle Siege</h1>
+            <p>A 3D Medieval Battle Simulator</p>
+            <p style="color:#998060;font-size:13px;max-width:400px;margin:0 auto 24px;line-height:1.5;">Command your armies from three sides. March knights toward the castle walls, launch boulders from catapults, and defend the keep. Use mouse to orbit, scroll to zoom.</p>
+            <p style="color:#665030;font-size:11px;margin-bottom:20px;">Press P to toggle performance stats</p>
+            <button id="enterBtn">Enter Battle</button>
+            <p style="color:#44362a;font-size:10px;margin-top:40px;">&copy; 2026 Petri Sandholm</p>
+        </div>
+    </div>
+
     <button id="togglePanel" title="Toggle Controls">&#9776;</button>
     <div id="controls">
         <div class="panel-header">Controls</div>
@@ -203,6 +270,9 @@
     <script>
         document.getElementById('togglePanel').addEventListener('click', () => {
             document.getElementById('controls').classList.toggle('hidden');
+        });
+        document.getElementById('enterBtn').addEventListener('click', () => {
+            document.getElementById('splash').classList.add('hidden');
         });
     </script>
 

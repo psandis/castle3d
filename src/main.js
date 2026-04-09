@@ -10,6 +10,45 @@ const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
+// Performance monitor - top right, custom styled
+const perfDiv = document.createElement('div');
+perfDiv.id = 'perf-monitor';
+perfDiv.style.cssText = 'position:absolute;top:12px;right:12px;background-color:rgba(30,18,8,0.85);color:#d4a843;font-family:monospace;font-size:11px;padding:8px 12px;border-radius:4px;border:1px solid #8b6914;pointer-events:none;line-height:1.6;';
+document.body.appendChild(perfDiv);
+
+let perfFrames = 0;
+let perfLastTime = performance.now();
+let perfFps = 0;
+
+function updatePerfMonitor() {
+    perfFrames++;
+    const now = performance.now();
+    if (now - perfLastTime >= 1000) {
+        perfFps = Math.round(perfFrames * 1000 / (now - perfLastTime));
+        perfFrames = 0;
+        perfLastTime = now;
+    }
+    const info = renderer.info;
+    const mem = performance.memory ? (performance.memory.usedJSHeapSize / 1048576).toFixed(1) : '--';
+    perfDiv.innerHTML = `FPS: ${perfFps}<br>Draw: ${info.render.calls}<br>Tri: ${(info.render.triangles / 1000).toFixed(1)}k<br>Mem: ${mem}MB`;
+    camDiv.innerHTML = `X: ${camera.position.x.toFixed(1)} Y: ${camera.position.y.toFixed(1)} Z: ${camera.position.z.toFixed(1)}<br>Rot: ${(camera.rotation.y * 180 / Math.PI).toFixed(0)}°`;
+}
+
+// Camera coordinates - bottom right
+const camDiv = document.createElement('div');
+camDiv.style.cssText = 'position:absolute;bottom:12px;right:12px;background-color:rgba(30,18,8,0.85);color:#d4a843;font-family:monospace;font-size:11px;padding:8px 12px;border-radius:4px;border:1px solid #8b6914;pointer-events:none;line-height:1.6;';
+document.body.appendChild(camDiv);
+
+// Toggle stats with P key
+let statsVisible = true;
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'p' || e.key === 'P') {
+        statsVisible = !statsVisible;
+        perfDiv.style.display = statsVisible ? 'block' : 'none';
+        camDiv.style.display = statsVisible ? 'block' : 'none';
+    }
+});
+
 // OrbitControls
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
@@ -473,7 +512,7 @@ castle.traverse(obj => {
 });
 
 // Camera Position
-camera.position.set(14, 9, 34);
+camera.position.set(40, 35, 60);
 controls.update();
 
 // Models
@@ -645,10 +684,19 @@ function spawnCatapult(id, config, path, speed = 2) {
     gltfLoader.load('textures/catapult/catapult.glb', (gltf) => {
         const catapult = gltf.scene;
         const groundY = scaleAndGround(catapult, 3);
-        const char = createCharacter(catapult, config, path, speed, groundY);
-        char.facingOffset = Math.PI;
+        // Rotate GLB model 180 degrees inside a wrapper
+        const wrapper = new THREE.Group();
+        catapult.rotation.y = Math.PI;
+        wrapper.add(catapult);
+
+        const char = createCharacter(wrapper, config, path, speed, groundY);
+        char.facingOffset = 0;
         char.isCatapult = true;
-        scene.add(catapult);
+
+        // Store catapult model ref for fire animation
+        char.catapultModel = catapult;
+
+        scene.add(wrapper);
         characters.push(char);
         catapultChars.push(char);
     });
@@ -745,9 +793,21 @@ const catapultChars = [];
 
 const catapultSound = new Audio('src/sounds/freesound_community-falling-bomb-41038.mp3');
 
+// Catapult swing animations in progress
+const catapultSwings = [];
+
 function fireFromCatapult(cat) {
     const sfx = catapultSound.cloneNode();
     sfx.play();
+
+    // Swing animation - tilt the catapult model forward and back
+    if (cat.catapultModel) {
+        catapultSwings.push({
+            model: cat.catapultModel,
+            time: 0,
+            duration: 0.4
+        });
+    }
 
     const startPos = cat.model.position.clone();
     startPos.y += 3;
@@ -781,6 +841,7 @@ export function fireCatapult() {
 const clock = new THREE.Clock();
 
 function animate() {
+    updatePerfMonitor();
     requestAnimationFrame(animate);
     const delta = clock.getDelta();
     controls.update();
@@ -848,6 +909,20 @@ function animate() {
         if (marchingSoundCount === 0) {
             marchAudio.pause();
             marchAudio.currentTime = 0;
+        }
+    }
+
+    // Animate catapult swings
+    for (let i = catapultSwings.length - 1; i >= 0; i--) {
+        const swing = catapultSwings[i];
+        swing.time += delta;
+        const t = swing.time / swing.duration;
+        if (t >= 1) {
+            swing.model.rotation.x = 0;
+            catapultSwings.splice(i, 1);
+        } else {
+            // Quick forward kick then return
+            swing.model.rotation.x = Math.sin(t * Math.PI) * -0.5;
         }
     }
 
