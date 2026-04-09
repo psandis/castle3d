@@ -2,6 +2,9 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
+
+const BASE = import.meta.env.BASE_URL;
+
 // Scene, Camera, Renderer
 export const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87CEEB);
@@ -64,15 +67,15 @@ controls.target.set(6, 3, 22);
 const textureLoader = new THREE.TextureLoader();
 
 // Existing textures
-const stoneTexture = textureLoader.load('textures/bricks.jpg'); // Stone wall
+const stoneTexture = textureLoader.load(BASE + 'textures/bricks.jpg'); // Stone wall
 stoneTexture.wrapS = stoneTexture.wrapT = THREE.RepeatWrapping;
 stoneTexture.repeat.set(2, 2);
 
-const roofTexture = textureLoader.load('textures/roof.jpg'); // Roof tiles
+const roofTexture = textureLoader.load(BASE + 'textures/roof.jpg'); // Roof tiles
 roofTexture.wrapS = roofTexture.wrapT = THREE.RepeatWrapping;
 roofTexture.repeat.set(4, 4);
 
-const groundTexture = textureLoader.load('textures/grass.jpg'); // Grass
+const groundTexture = textureLoader.load(BASE + 'textures/grass.jpg'); // Grass
 groundTexture.wrapS = groundTexture.wrapT = THREE.RepeatWrapping;
 groundTexture.repeat.set(10, 10);
 
@@ -607,7 +610,7 @@ function createCharacter(model, start, waypoints, speed, groundY) {
 
 // Spawn a knight - loads directly, no cloning
 function spawnKnight(id, config, path, speed = 4, group = 'north') {
-    fbxLoader.load('textures/knights/knight-walk.fbx', (knight) => {
+    fbxLoader.load(BASE + 'textures/knights/knight-walk.fbx', (knight) => {
         // Center the model on its local origin
         const box = new THREE.Box3().setFromObject(knight);
         const center = box.getCenter(new THREE.Vector3());
@@ -651,7 +654,7 @@ function spawnKnight(id, config, path, speed = 4, group = 'north') {
 
 // Place a defender archer on a tower (static, no path)
 function spawnTowerArcher(towerX, towerZ) {
-    gltfLoader.load('textures/archer/archer.glb', (gltf) => {
+    gltfLoader.load(BASE + 'textures/archer/archer.glb', (gltf) => {
         const archer = gltf.scene;
         const box = new THREE.Box3().setFromObject(archer);
         const size = box.getSize(new THREE.Vector3());
@@ -673,7 +676,7 @@ spawnTowerArcher(-10, 10);
 
 // Spawn an attacker archer (GLB, with path)
 function spawnArcher(id, config, path, speed = 3) {
-    gltfLoader.load('textures/archer/archer.glb', (gltf) => {
+    gltfLoader.load(BASE + 'textures/archer/archer.glb', (gltf) => {
         const archer = gltf.scene;
         const groundY = scaleAndGround(archer, 3);
         const char = createCharacter(archer, config, path, speed, groundY);
@@ -684,7 +687,7 @@ function spawnArcher(id, config, path, speed = 3) {
 
 // Spawn a catapult (GLB, static)
 function spawnCatapult(id, config, path, speed = 2) {
-    gltfLoader.load('textures/catapult/catapult.glb', (gltf) => {
+    gltfLoader.load(BASE + 'textures/catapult/catapult.glb', (gltf) => {
         const catapult = gltf.scene;
         const groundY = scaleAndGround(catapult, 3);
         // Rotate GLB model 180 degrees inside a wrapper
@@ -743,7 +746,7 @@ renderer.domElement.addEventListener('click', (event) => {
 });
 
 // March sound
-const marchAudio = new Audio('src/sounds/freesound_community-marching-loop-32908.mp3');
+const marchAudio = new Audio(BASE + 'sounds/freesound_community-marching-loop-32908.mp3');
 marchAudio.loop = true;
 let marchingSoundCount = 0;
 
@@ -794,7 +797,7 @@ const boulderMaterial = new THREE.MeshStandardMaterial({ color: 0x666666, roughn
 // Track catapult characters
 const catapultChars = [];
 
-const catapultSound = new Audio('src/sounds/freesound_community-falling-bomb-41038.mp3');
+const catapultSound = new Audio(BASE + 'sounds/freesound_community-falling-bomb-41038.mp3');
 
 // Catapult swing animations in progress
 const catapultSwings = [];
