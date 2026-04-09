@@ -1,4 +1,4 @@
-import { castle, toggleDrawbridge } from './main.js'; // Import castle group and drawbridge toggle
+import { castle, toggleDrawbridge, fireCatapult } from './main.js';
 
 // Movement Functions
 const moveDistance = 1;
@@ -21,3 +21,4 @@ document.getElementById('moveDown').addEventListener('click', () => moveCastle('
 document.getElementById('moveForward').addEventListener('click', () => moveCastle('forward'));
 document.getElementById('moveBackward').addEventListener('click', () => moveCastle('backward'));
 document.getElementById('toggleDrawbridge').addEventListener('click', () => toggleDrawbridge());
+document.getElementById('fireCatapult').addEventListener('click', () => fireCatapult());

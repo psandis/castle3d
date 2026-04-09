@@ -1,18 +1,22 @@
-import { moveCastle } from './controls.js'; // Import movement function
-
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 // Scene, Camera, Renderer
 export const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87CEEB);
 export const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
 // OrbitControls
-const controls = new THREE.OrbitControls(camera, renderer.domElement);
+const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
 controls.minDistance = 10;
-controls.maxDistance = 50;
+controls.maxDistance = 80;
+controls.target.set(6, 3, 22);
 
 // Texture Loader
 const textureLoader = new THREE.TextureLoader();
@@ -107,11 +111,15 @@ setTimeout(() => {
 
 // Build the Castle
 export const castle = new THREE.Group();
-const groundGeometry = new THREE.PlaneGeometry(100, 100);
+// Large flat ground with fog to hide edges
+const groundGeometry = new THREE.PlaneGeometry(300, 300);
 const ground = new THREE.Mesh(groundGeometry, groundMaterial);
 ground.rotation.x = -Math.PI / 2;
-ground.receiveShadow = false; // Don't receive shadows on the ground
+ground.receiveShadow = false;
 castle.add(ground);
+
+// Fog blends ground into sky evenly on all sides
+scene.fog = new THREE.Fog(0x87CEEB, 60, 140);
 
 const wallGeometry = new THREE.BoxGeometry(20, 5, 0.5);
 const battlementGeometry = new THREE.BoxGeometry(1, 1, 0.5);
@@ -347,6 +355,39 @@ const keepRoof = new THREE.Mesh(keepRoofGeometry, roofMaterial);
 keepRoof.position.set(0, 10.5, 0);
 castle.add(keepRoof);
 
+// Center tower on top of the keep
+const centerTowerGeometry = new THREE.CylinderGeometry(1.5, 1.5, 8, 32);
+const centerTower = new THREE.Mesh(centerTowerGeometry, stoneMaterial);
+centerTower.position.set(0, 15, 0); // On top of the keep roof (10.5 + 8/2)
+castle.add(centerTower);
+
+const centerRoofGeometry = new THREE.ConeGeometry(2, 3, 32);
+const centerRoof = new THREE.Mesh(centerRoofGeometry, roofMaterial);
+centerRoof.position.set(0, 20.5, 0);
+castle.add(centerRoof);
+
+// Center tower battlements
+for (let i = 0; i < 6; i++) {
+    const angle = (i / 6) * Math.PI * 2;
+    const battlement = new THREE.Mesh(towerBattlementGeometry, stoneMaterial);
+    battlement.position.set(
+        Math.cos(angle) * 1.5,
+        19 + 0.4,
+        Math.sin(angle) * 1.5
+    );
+    battlement.rotation.y = angle;
+    castle.add(battlement);
+}
+
+// Flag on center tower
+const centerPole = new THREE.Mesh(flagPoleGeometry, flagPoleMaterial);
+centerPole.position.set(0, 20.5 + flagPoleHeight / 2, 0);
+castle.add(centerPole);
+const centerFlag = new THREE.Mesh(flagGeometry.clone(), flagMaterial);
+centerFlag.position.set(0, 20.5 + flagPoleHeight, 0);
+centerFlag.geometry.translate(0.6, 0, 0);
+castle.add(centerFlag);
+
 // Windows with metal frames
 const windowGeometry = new THREE.PlaneGeometry(1, 1.5);
 const windowMaterial = new THREE.MeshStandardMaterial({
@@ -432,12 +473,309 @@ castle.traverse(obj => {
 });
 
 // Camera Position
-camera.position.set(20, 15, 20);
+camera.position.set(14, 9, 34);
+controls.update();
+
+// Models
+const mixers = [];
+const gltfLoader = new GLTFLoader();
+
+const fbxLoader = new FBXLoader();
+
+// Character system - each character has a model, animation, and motion path
+const characters = [];
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+const pathPosition = new THREE.Vector3();
+const pathLookAhead = new THREE.Vector3();
+const routeTargetPosition = new THREE.Vector3();
+const KNIGHT_FACING_OFFSET = 0;
+const KNIGHT_WALK_REFERENCE_SPEED = 4;
+const KNIGHT_TURN_SPEED = 6;
+
+function scaleAndGround(model, targetHeight) {
+    const box = new THREE.Box3().setFromObject(model);
+    const size = box.getSize(new THREE.Vector3());
+    model.scale.setScalar(targetHeight / size.y);
+    const scaledBox = new THREE.Box3().setFromObject(model);
+    return -scaledBox.min.y;
+}
+
+function buildRoutePoints(start, waypoints, y) {
+    return [start, ...waypoints].map(point => new THREE.Vector3(point.x, y, point.z));
+}
+
+function buildRouteCurve(points) {
+    return new THREE.CatmullRomCurve3(points, false, 'centripetal');
+}
+
+function normalizeAngle(angle) {
+    return Math.atan2(Math.sin(angle), Math.cos(angle));
+}
+
+function syncCharacterToRoute(char) {
+    if (char.routeMode === 'segments') {
+        const targetPoint = char.routePoints[Math.min(char.routeIndex + 1, char.routePoints.length - 1)];
+        char.model.position.copy(char.routePoints[char.routeIndex]);
+        const dx = targetPoint.x - char.model.position.x;
+        const dz = targetPoint.z - char.model.position.z;
+
+        if (dx !== 0 || dz !== 0) {
+            char.model.rotation.y = Math.atan2(dx, dz) + char.facingOffset;
+        }
+        return;
+    }
+
+    char.routeCurve.getPointAt(char.routeProgress, pathPosition);
+    char.model.position.copy(pathPosition);
+
+    const lookAheadT = Math.min(char.routeProgress + 0.0025, 1);
+    char.routeCurve.getPointAt(lookAheadT, pathLookAhead);
+    const dx = pathLookAhead.x - pathPosition.x;
+    const dz = pathLookAhead.z - pathPosition.z;
+
+    if (dx !== 0 || dz !== 0) {
+        char.model.rotation.y = Math.atan2(dx, dz) + char.facingOffset;
+    }
+}
+
+function createCharacter(model, start, waypoints, speed, groundY) {
+    const routePoints = buildRoutePoints(start, waypoints, groundY);
+    const routeCurve = buildRouteCurve(routePoints);
+    const routeLength = routeCurve.getLength();
+    const char = {
+        model,
+        routePoints,
+        routeCurve,
+        routeLength,
+        speed,
+        groundY,
+        routeProgress: 0,
+        routeIndex: 0,
+        moving: routeLength > 0,
+        walkAction: null,
+        mixer: null,
+        facingOffset: 0,
+        routeMode: 'curve'
+    };
+
+    syncCharacterToRoute(char);
+    return char;
+}
+
+// Spawn a knight - loads directly, no cloning
+function spawnKnight(id, config, path, speed = 4) {
+    fbxLoader.load('textures/knights/knight-walk.fbx', (knight) => {
+        const groundY = scaleAndGround(knight, 3);
+        const mixer = new THREE.AnimationMixer(knight);
+        mixers.push(mixer);
+
+        const char = createCharacter(knight, config, path, speed, groundY);
+        char.mixer = mixer;
+        char.facingOffset = KNIGHT_FACING_OFFSET;
+        char.routeMode = 'segments';
+        scene.add(knight);
+
+        if (knight.animations.length > 0) {
+            const clip = knight.animations[0].clone();
+            clip.tracks = clip.tracks.filter(t => !t.name.includes('.position'));
+            const action = mixer.clipAction(clip);
+            action.setLoop(THREE.LoopRepeat);
+            action.timeScale = char.speed / KNIGHT_WALK_REFERENCE_SPEED;
+            action.play();
+            action.paused = !char.moving;
+            action.time = 0;
+            char.walkAction = action;
+        }
+
+        characters.push(char);
+    });
+}
+
+// Place a defender archer on a tower (static, no path)
+function spawnTowerArcher(towerX, towerZ) {
+    gltfLoader.load('textures/archer/archer.glb', (gltf) => {
+        const archer = gltf.scene;
+        const box = new THREE.Box3().setFromObject(archer);
+        const size = box.getSize(new THREE.Vector3());
+        const s = 2.5 / size.y;
+        archer.scale.setScalar(s);
+        // Place on top of tower (tower top = 12)
+        // Offset inward from tower center to avoid flag pole
+        const offsetX = towerX > 0 ? -1 : 1;
+        archer.position.set(towerX + offsetX, 12, towerZ - 1);
+        // Face toward the attacking knights (positive z)
+        archer.rotation.y = 0;
+        scene.add(archer);
+    });
+}
+
+// Defenders on the two front towers
+spawnTowerArcher(10, 10);
+spawnTowerArcher(-10, 10);
+
+// Spawn an attacker archer (GLB, with path)
+function spawnArcher(id, config, path, speed = 3) {
+    gltfLoader.load('textures/archer/archer.glb', (gltf) => {
+        const archer = gltf.scene;
+        const groundY = scaleAndGround(archer, 3);
+        const char = createCharacter(archer, config, path, speed, groundY);
+        scene.add(archer);
+        characters.push(char);
+    });
+}
+
+// Spawn a catapult (GLB, static)
+function spawnCatapult(id, config, path, speed = 2) {
+    gltfLoader.load('textures/catapult/catapult.glb', (gltf) => {
+        const catapult = gltf.scene;
+        const groundY = scaleAndGround(catapult, 3);
+        const char = createCharacter(catapult, config, path, speed, groundY);
+        char.facingOffset = Math.PI;
+        scene.add(catapult);
+        characters.push(char);
+    });
+}
+
+// Load motion paths from data and spawn characters
+import pathData from './paths.json';
+
+pathData.knights.forEach((k, index) => spawnKnight(`knight-${index}`, k.start, k.waypoints, k.speed));
+pathData.archers.forEach((a, index) => spawnArcher(`archer-${index}`, a.start, a.waypoints, a.speed));
+pathData.catapults.forEach((c, index) => spawnCatapult(`catapult-${index}`, c.start, c.waypoints, c.speed));
+
+// Click any character to start/stop its motion path
+renderer.domElement.addEventListener('click', (event) => {
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+
+    for (const char of characters) {
+        const intersects = raycaster.intersectObject(char.model, true);
+        if (intersects.length > 0) {
+            char.moving = !char.moving;
+            if (char.walkAction) {
+                char.walkAction.paused = !char.moving;
+            }
+            break;
+        }
+    }
+});
+
+// Boulder projectile system
+const boulders = [];
+const boulderGeometry = new THREE.SphereGeometry(0.5, 8, 8);
+const boulderMaterial = new THREE.MeshStandardMaterial({ color: 0x666666, roughness: 0.9 });
+
+export function fireCatapult() {
+    // Find the first catapult
+    const catapultChar = characters.find(c => c.model && c.facingOffset === Math.PI);
+    if (!catapultChar) return;
+
+    const startPos = catapultChar.model.position.clone();
+    startPos.y += 3; // Launch from top of catapult
+
+    const boulder = new THREE.Mesh(boulderGeometry, boulderMaterial);
+    boulder.position.copy(startPos);
+    scene.add(boulder);
+
+    boulders.push({
+        mesh: boulder,
+        start: startPos.clone(),
+        target: new THREE.Vector3(0, 0, 0), // Aim at castle center
+        time: 0,
+        duration: 2,
+        active: true
+    });
+}
 
 // Animation Loop
+const clock = new THREE.Clock();
+
 function animate() {
     requestAnimationFrame(animate);
+    const delta = clock.getDelta();
     controls.update();
+
+    // Update animation mixers
+    mixers.forEach(mixer => mixer.update(delta));
+
+    // Move characters along their curves using arc-length progress.
+    characters.forEach(char => {
+        if (!char.moving || char.routeLength <= 0) return;
+
+        if (char.routeMode === 'segments') {
+            if (char.routeIndex >= char.routePoints.length - 1) {
+                char.moving = false;
+                if (char.walkAction) char.walkAction.paused = true;
+                return;
+            }
+
+            const fromPoint = char.routePoints[char.routeIndex];
+            const targetPoint = char.routePoints[char.routeIndex + 1];
+            routeTargetPosition.copy(targetPoint);
+            const dx = routeTargetPosition.x - char.model.position.x;
+            const dz = routeTargetPosition.z - char.model.position.z;
+            const distance = Math.hypot(dx, dz);
+            const step = char.speed * delta;
+
+            if (distance <= step) {
+                char.model.position.copy(routeTargetPosition);
+                char.routeIndex += 1;
+
+                if (char.routeIndex >= char.routePoints.length - 1) {
+                    char.moving = false;
+                    if (char.walkAction) char.walkAction.paused = true;
+                    return;
+                }
+            } else {
+                char.model.position.x += (dx / distance) * step;
+                char.model.position.z += (dz / distance) * step;
+            }
+
+            const heading = Math.atan2(
+                char.routePoints[Math.min(char.routeIndex + 1, char.routePoints.length - 1)].x - char.model.position.x,
+                char.routePoints[Math.min(char.routeIndex + 1, char.routePoints.length - 1)].z - char.model.position.z
+            ) + char.facingOffset;
+            const angleDelta = normalizeAngle(heading - char.model.rotation.y);
+            const turnStep = Math.min(Math.abs(angleDelta), KNIGHT_TURN_SPEED * delta);
+            char.model.rotation.y += Math.sign(angleDelta) * turnStep;
+            return;
+        }
+
+        const nextProgress = Math.min(char.routeProgress + (char.speed * delta) / char.routeLength, 1);
+        char.routeProgress = nextProgress;
+        syncCharacterToRoute(char);
+
+        if (nextProgress >= 1) {
+            char.moving = false;
+            if (char.walkAction) char.walkAction.paused = true;
+        }
+    });
+
+    // Animate boulders in parabolic arc
+    boulders.forEach(b => {
+        if (!b.active) return;
+        b.time += delta;
+        const t = Math.min(b.time / b.duration, 1);
+
+        // Lerp x and z
+        b.mesh.position.x = b.start.x + (b.target.x - b.start.x) * t;
+        b.mesh.position.z = b.start.z + (b.target.z - b.start.z) * t;
+
+        // Parabolic arc for y: peaks at midpoint
+        const arcHeight = 20;
+        b.mesh.position.y = b.start.y + (b.target.y - b.start.y) * t + arcHeight * 4 * t * (1 - t);
+
+        // Spin the boulder
+        b.mesh.rotation.x += delta * 5;
+        b.mesh.rotation.z += delta * 3;
+
+        if (t >= 1) {
+            b.active = false;
+            scene.remove(b.mesh);
+        }
+    });
 
     // Animate drawbridge rotation
     const targetRotation = drawbridgeOpen ? drawbridgeLoweredAngle : drawbridgeRaisedAngle;
@@ -450,21 +788,12 @@ function animate() {
     const chainMidpoint = new THREE.Vector3();
 
     drawbridgeChains.forEach(chain => {
-        // Get world position of the attachment point on the drawbridge
         chain.attachObject.getWorldPosition(chainAttachTemp);
-
-        // Calculate direction from anchor to attachment point
         chainDirection.copy(chainAttachTemp).sub(chain.anchor);
         const length = chainDirection.length();
-
-        // Position chain at midpoint between anchor and attachment
         chainMidpoint.copy(chainAttachTemp).add(chain.anchor).multiplyScalar(0.5);
         chain.mesh.position.copy(chainMidpoint);
-
-        // Scale chain to match distance
         chain.mesh.scale.set(1, length, 1);
-
-        // Rotate chain to point from anchor to attachment
         chain.mesh.quaternion.setFromUnitVectors(upVector, chainDirection.normalize());
     });
 

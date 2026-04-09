@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Demo Game-Style 3D Castle</title>
+    <link href="https://fonts.googleapis.com/css2?family=MedievalSharp&display=swap" rel="stylesheet">
     <style>
         body {
             margin: 0;
@@ -17,22 +18,95 @@
 
         #controls {
             position: absolute;
-            top: 10px;
-            left: 10px;
-            background: rgba(255, 255, 255, 0.8);
-            padding: 10px;
-            border-radius: 5px;
+            top: 12px;
+            left: 12px;
+            background: linear-gradient(180deg, rgba(45, 30, 15, 0.92), rgba(30, 18, 8, 0.95));
+            padding: 14px 12px 10px;
+            border-radius: 4px;
+            border: 2px solid #8b6914;
+            box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.6);
+            font-family: 'MedievalSharp', serif;
+        }
+
+        #controls::before {
+            content: 'Castle Controls';
+            display: block;
+            text-align: center;
+            color: #d4a843;
+            font-size: 15px;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+            border-bottom: 1px solid rgba(139, 105, 20, 0.5);
+            padding-bottom: 8px;
         }
 
         button {
-            margin: 5px;
-            padding: 5px 10px;
+            display: block;
+            width: 100%;
+            margin: 4px 0;
+            padding: 7px 14px;
+            font-family: 'MedievalSharp', serif;
             font-size: 14px;
+            color: #e8d5a3;
+            background: linear-gradient(180deg, #4a3520, #2e1f0e);
+            border: 1px solid #8b6914;
+            border-radius: 3px;
+            cursor: pointer;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+            transition: background 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            background: linear-gradient(180deg, #5e4428, #3a2812);
+            box-shadow: 0 0 8px rgba(212, 168, 67, 0.3);
+            color: #f5e6b8;
+        }
+
+        button:active {
+            background: linear-gradient(180deg, #2e1f0e, #4a3520);
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        #togglePanel {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            z-index: 10;
+            width: 36px;
+            height: 36px;
+            font-size: 18px;
+            line-height: 36px;
+            text-align: center;
+            padding: 0;
+            margin: 0;
+            font-family: 'MedievalSharp', serif;
+            color: #d4a843;
+            background: linear-gradient(180deg, rgba(45, 30, 15, 0.92), rgba(30, 18, 8, 0.95));
+            border: 2px solid #8b6914;
+            border-radius: 4px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+            transition: background 0.2s;
+        }
+
+        #togglePanel:hover {
+            background: linear-gradient(180deg, #5e4428, #3a2812);
+            box-shadow: 0 0 8px rgba(212, 168, 67, 0.3);
+        }
+
+        #controls {
+            left: 56px;
+        }
+
+        #controls.hidden {
+            display: none;
         }
     </style>
 </head>
 
 <body>
+    <button id="togglePanel" title="Toggle Controls">&#9776;</button>
     <div id="controls">
         <button id="moveLeft">Left</button>
         <button id="moveRight">Right</button>
@@ -41,12 +115,17 @@
         <button id="moveForward">Forward</button>
         <button id="moveBackward">Backward</button>
         <button id="toggleDrawbridge">Toggle Drawbridge</button>
+        <button id="fireCatapult">Fire Catapult</button>
     </div>
 
-    <!-- Three.js and OrbitControls -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.134/examples/js/controls/OrbitControls.js"></script>
-    <!-- Local Scripts -->
+    <script>
+        document.getElementById('togglePanel').addEventListener('click', () => {
+            const controls = document.getElementById('controls');
+            const btn = document.getElementById('togglePanel');
+            controls.classList.toggle('hidden');
+        });
+    </script>
+
     <script src="src/main.js" type="module"></script>
     <script src="src/controls.js" type="module"></script>
 </body>

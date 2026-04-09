@@ -1,0 +1,29 @@
+{
+  "knights": [
+    {
+      "start": { "x": 8, "z": 30 },
+      "waypoints": [
+        { "x": 8, "z": 14 }
+      ],
+      "speed": 4
+    }
+  ],
+  "archers": [],
+  "catapults": [
+    {
+      "start": { "x": -6, "z": 62 },
+      "waypoints": [{ "x": -6, "z": 60 }],
+      "speed": 1
+    },
+    {
+      "start": { "x": 0, "z": 62 },
+      "waypoints": [{ "x": 0, "z": 60 }],
+      "speed": 1
+    },
+    {
+      "start": { "x": 6, "z": 62 },
+      "waypoints": [{ "x": 6, "z": 60 }],
+      "speed": 1
+    }
+  ]
+}
