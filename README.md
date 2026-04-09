@@ -1,78 +1,90 @@
-# Castle3D - Interactive 3D Castle Demo
+# Castle Siege — 3D Medieval Battle Simulator
 
 ![Castle Screenshot](screenshot.png)
 
-A game-style 3D castle built with Three.js, featuring interactive controls, animated gate mechanics, and a defensive moat system. The castle showcases a central keep with perimeter walls, corner towers, and a water moat with rounded corners surrounding the defensive structure.
+An interactive 3D medieval battle simulator built with Three.js. Three armies of knights march toward a fortified castle from different directions while catapults launch boulders in parabolic arcs. Defend the keep with tower archers, raise the drawbridge, and command your forces through a medieval-themed control panel.
 
-## Features
+## Live Features
 
-### Castle Architecture
-- **Central Keep**: A 10x10x10 stone keep with textured brick walls and a flat roof
-- **Perimeter Walls**: Four defensive walls (20x5) with crenellated battlements
-- **Corner Towers**: Four cylindrical towers at each corner with conical roofs
-- **Gate System**: Dual-hinged gate that opens and closes with smooth animation
-- **Windows**: Dark glass windows on the keep with metal frame decorations
+- **Fortified Castle** — Central keep with center tower, four corner towers with battlements and flags, perimeter walls with crenellations, animated drawbridge with chains, and a water moat with rounded corners
+- **Knight Armies** — Three groups (North, East, West) with animated walk cycles, marching in formation toward the castle walls. East and West forces attack in curved arc formations
+- **Catapult Siege** — Three catapults positioned behind the northern army. Click to fire individual catapults or launch a volley. Boulders fly in parabolic arcs with random scatter, spinning as they fall
+- **Tower Defenders** — Archer models stationed on the two front towers, facing the incoming attack
+- **Battle Sounds** — Marching loop plays while armies advance, bomb sound on each catapult launch
+- **Splash Screen** — Blur overlay entry screen with battle description and controls guide
+- **Performance Monitor** — Real-time FPS, draw calls, triangle count, and memory usage (top-right). Camera coordinates displayed bottom-right. Toggle with P key
 
-### Defensive Features
-- **Water Moat**: A rectangular moat with rounded corners surrounding the castle walls, providing a defensive barrier
-- **Gate Rings**: Decorative metal rings on the gate for authentic medieval aesthetics
+## Controls
 
-### Interactive Controls
-- **Camera Controls**: OrbitControls for smooth camera rotation and zoom (mouse/trackpad)
-- **Movement Controls**: Six directional buttons to move the entire castle:
-  - Left/Right (X-axis)
-  - Up/Down (Y-axis)
-  - Forward/Backward (Z-axis)
-- **Gate Toggle**: Button to open and close the castle gate
+- **Mouse/Touch** — Orbit and zoom the camera
+- **North / East / West** — March or halt knight groups (toggle)
+- **Fire Catapult** — Launch volley from all three catapults
+- **Click Catapult** — Fire a single catapult with random target
+- **Toggle Drawbridge** — Raise or lower the drawbridge with chain animation
+- **Camera Buttons** — Nudge camera position (Left, Right, Up, Down, Fwd, Back)
+- **P Key** — Toggle performance stats overlay
 
-### Visual Features
-- **Textured Materials**: 
-  - Stone brick texture for walls and keep
-  - Roof tile texture for tower and keep roofs
-  - Grass texture for ground
-  - Metal materials for decorative elements
-- **Lighting**: Ambient and directional lighting with shadow mapping
-- **Optimized Rendering**: Anti-aliasing enabled for smooth visuals
+## Knight Formations
 
-## Installation
+| Group | Size | Formation | Direction |
+|-------|------|-----------|-----------|
+| **North** | 8 | 2 rows of 4 | Straight at the drawbridge |
+| **East** | 32 | 4 groups of 8, arc curve | East wall |
+| **West** | 128 | 8 groups of 16, arc curve (4 rows deep) | West wall |
 
-```bash
-npm install
-```
+## Tech Stack
 
-## Running
-
-```bash
-npm start
-```
-
-The application will start on `http://localhost:5173`
-
-## Technology Stack
-
-- **Three.js** (v0.174.0) - 3D graphics library
-- **Vite** (v6.2.2) - Build tool and dev server
-- **OrbitControls** - Camera control system
+- **Three.js** v0.174.0 — 3D rendering engine
+- **Vite** v6.2.2 — Dev server and bundler
+- **FBXLoader** — Knight character models with skeletal animation
+- **GLTFLoader** — Archer and catapult models
 
 ## Project Structure
 
 ```
 castle/
 ├── src/
-│   ├── main.js      # Main 3D scene, castle construction, and rendering
-│   └── controls.js  # Movement and interaction controls
-├── textures/        # Texture files (bricks, roof, grass)
-├── index.html       # HTML entry point
-└── package.json     # Dependencies and scripts
+│   ├── main.js          # Scene, castle geometry, characters, animation loop
+│   ├── controls.js      # Button event handlers and camera movement
+│   ├── paths.json       # Knight and catapult motion path data
+│   └── sounds/          # March loop and catapult launch audio
+├── textures/
+│   ├── knights/         # Knight FBX/GLB models (walk, run, attack)
+│   ├── archer/          # Archer GLB model
+│   ├── catapult/        # Catapult GLB model
+│   ├── bricks.jpg       # Stone wall texture
+│   ├── roof.jpg         # Roof tile texture
+│   └── grass.jpg        # Ground texture
+├── index.html           # Entry point, splash screen, controls UI
+├── vite.config.js       # Dev server config (port 5181)
+└── package.json
 ```
 
-## Controls
+## Getting Started
 
-- **Mouse/Trackpad**: Rotate and zoom the camera
-- **On-screen Buttons**: Move the castle in 6 directions
-- **Toggle Gate Button**: Open/close the castle gate
+```bash
+npm install
+npm run dev
+```
 
-## Technical Details
+Opens at `http://localhost:5181`
 
-The castle is built as a THREE.Group containing all meshes, allowing for unified movement and transformations. The gate system uses pivot groups for proper hinge-based rotation. Shadow mapping is configured to avoid artifacts on the ground plane while maintaining realistic lighting on other structures.
+## How It Works
 
+### Castle Construction
+The castle is built as a `THREE.Group` containing all meshes — walls, towers, keep, battlements, flags, drawbridge, and chains. The drawbridge uses a pivot group for hinge-based rotation with chain meshes that dynamically stretch between wall anchors and the bridge.
+
+### Character System
+Each character (knight, archer, catapult) is created with a motion path defined in `paths.json`. Knights load from FBX files with walk animations, wrapped in `THREE.Group` containers for proper origin centering. The animation mixer updates each frame, and position tracks are filtered to prevent root motion snap-back on loop.
+
+### Motion Paths
+Paths are defined as start positions with waypoints. Knights use segment-based routing with smooth turn interpolation. Characters face their movement direction automatically. Arc formations are generated programmatically — outer groups start further from the castle, creating a curved battle line.
+
+### Catapult Physics
+Boulders follow a parametric parabolic arc: X and Z are linearly interpolated from start to target, Y follows `arcHeight * 4t(1-t)` for the parabola. Boulders spin on two axes during flight and are removed on impact.
+
+## License
+
+See [MIT](LICENSE)
+
+---

@@ -41,12 +41,15 @@ document.body.appendChild(camDiv);
 
 // Toggle stats with P key
 let statsVisible = true;
+
+export function toggleStatsDisplay() {
+    statsVisible = !statsVisible;
+    perfDiv.style.display = statsVisible ? 'block' : 'none';
+    camDiv.style.display = statsVisible ? 'block' : 'none';
+}
+
 document.addEventListener('keydown', (e) => {
-    if (e.key === 'p' || e.key === 'P') {
-        statsVisible = !statsVisible;
-        perfDiv.style.display = statsVisible ? 'block' : 'none';
-        camDiv.style.display = statsVisible ? 'block' : 'none';
-    }
+    if (e.key === 'p' || e.key === 'P') toggleStatsDisplay();
 });
 
 // OrbitControls

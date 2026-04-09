@@ -18,6 +18,7 @@
 
         canvas {
             display: block;
+            touch-action: none;
         }
 
         #controls {
@@ -166,6 +167,8 @@
         #splash-content {
             text-align: center;
             font-family: 'MedievalSharp', serif;
+            padding: 0 20px;
+            max-width: 500px;
         }
 
         #splash h1 {
@@ -204,6 +207,19 @@
             display: none;
         }
 
+        #app-footer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            padding: 6px 0;
+            color: rgba(180, 160, 120, 0.5);
+            font-family: 'MedievalSharp', serif;
+            font-size: 10px;
+            pointer-events: none;
+        }
+
         @media (max-width: 480px) {
             #controls {
                 left: 12px;
@@ -214,6 +230,39 @@
 
             .btn-row {
                 flex-wrap: wrap;
+            }
+
+            #splash h1 {
+                font-size: 32px;
+            }
+
+            #splash p {
+                font-size: 13px;
+                padding: 0 16px;
+            }
+
+            #enterBtn {
+                font-size: 16px;
+                padding: 12px 30px;
+            }
+
+            #perf-monitor {
+                font-size: 9px;
+                padding: 4px 8px;
+                top: 6px;
+                right: 6px;
+            }
+        }
+
+        @media (max-width: 360px) {
+            #controls {
+                width: calc(100vw - 16px);
+                left: 8px;
+            }
+
+            .controls-btn {
+                font-size: 11px;
+                padding: 5px 6px;
             }
         }
     </style>
@@ -265,7 +314,14 @@
             </div>
             <button class="controls-btn action" id="fireCatapult">Fire Catapult</button>
         </div>
+
+        <div class="section">
+            <div class="section-title">Debug</div>
+            <button class="controls-btn" id="toggleStats">Toggle Stats (P)</button>
+        </div>
     </div>
+
+    <div id="app-footer">&copy; 2026 Petri Sandholm</div>
 
     <script>
         document.getElementById('togglePanel').addEventListener('click', () => {
