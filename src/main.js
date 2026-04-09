@@ -552,7 +552,7 @@ function createCharacter(model, start, waypoints, speed, groundY) {
         groundY,
         routeProgress: 0,
         routeIndex: 0,
-        moving: routeLength > 0,
+        moving: false,
         walkAction: null,
         mixer: null,
         facingOffset: 0,
@@ -564,17 +564,30 @@ function createCharacter(model, start, waypoints, speed, groundY) {
 }
 
 // Spawn a knight - loads directly, no cloning
-function spawnKnight(id, config, path, speed = 4) {
+function spawnKnight(id, config, path, speed = 4, group = 'north') {
     fbxLoader.load('textures/knights/knight-walk.fbx', (knight) => {
-        const groundY = scaleAndGround(knight, 3);
+        // Center the model on its local origin
+        const box = new THREE.Box3().setFromObject(knight);
+        const center = box.getCenter(new THREE.Vector3());
+        knight.position.set(-center.x, -box.min.y, -center.z);
+
+        // Wrap in a group so position/rotation applies to the group, not the offset model
+        const wrapper = new THREE.Group();
+        wrapper.add(knight);
+
+        const wrapperBox = new THREE.Box3().setFromObject(wrapper);
+        const size = wrapperBox.getSize(new THREE.Vector3());
+        wrapper.scale.setScalar(3 / size.y);
+        const groundY = 0;
         const mixer = new THREE.AnimationMixer(knight);
         mixers.push(mixer);
 
-        const char = createCharacter(knight, config, path, speed, groundY);
+        const char = createCharacter(wrapper, config, path, speed, groundY);
         char.mixer = mixer;
         char.facingOffset = KNIGHT_FACING_OFFSET;
         char.routeMode = 'segments';
-        scene.add(knight);
+        char.group = group;
+        scene.add(wrapper);
 
         if (knight.animations.length > 0) {
             const clip = knight.animations[0].clone();
@@ -588,7 +601,9 @@ function spawnKnight(id, config, path, speed = 4) {
             char.walkAction = action;
         }
 
+        console.log(`Knight ${id} [${group}] pos(${knight.position.x.toFixed(1)}, ${knight.position.y.toFixed(1)}, ${knight.position.z.toFixed(1)}) → waypoints:`, path.map(p => `(${p.x},${p.z})`).join(' → '));
         characters.push(char);
+        knightGroups[group].push(char);
     });
 }
 
@@ -640,7 +655,15 @@ function spawnCatapult(id, config, path, speed = 2) {
 // Load motion paths from data and spawn characters
 import pathData from './paths.json';
 
-pathData.knights.forEach((k, index) => spawnKnight(`knight-${index}`, k.start, k.waypoints, k.speed));
+// Track knight groups separately
+const knightGroups = { north: [], east: [], west: [] };
+
+Object.entries(pathData.knightGroups).forEach(([groupName, knights]) => {
+    knights.forEach((k, i) => {
+        spawnKnight(`${groupName}-${i}`, k.start, k.waypoints, k.speed, groupName);
+    });
+});
+
 pathData.archers.forEach((a, index) => spawnArcher(`archer-${index}`, a.start, a.waypoints, a.speed));
 pathData.catapults.forEach((c, index) => spawnCatapult(`catapult-${index}`, c.start, c.waypoints, c.speed));
 
@@ -661,6 +684,28 @@ renderer.domElement.addEventListener('click', (event) => {
         }
     }
 });
+
+// March knight groups
+export function marchNorth() {
+    knightGroups.north.forEach(char => {
+        char.moving = true;
+        if (char.walkAction) char.walkAction.paused = false;
+    });
+}
+
+export function marchEast() {
+    knightGroups.east.forEach(char => {
+        char.moving = true;
+        if (char.walkAction) char.walkAction.paused = false;
+    });
+}
+
+export function marchWest() {
+    knightGroups.west.forEach(char => {
+        char.moving = true;
+        if (char.walkAction) char.walkAction.paused = false;
+    });
+}
 
 // Boulder projectile system
 const boulders = [];
