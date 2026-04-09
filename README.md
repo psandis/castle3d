@@ -1,5 +1,7 @@
 # Castle Siege - 3D Medieval Battle Simulator
 
+[Live Demo](https://psandis.github.io/castle3d/) | [GitHub](https://github.com/psandis/castle3d)
+
 ![Castle Screenshot](screenshot.png)
 
 An interactive 3D medieval battle simulator built with Three.js. Three armies of knights march toward a fortified castle from different directions while catapults launch boulders in parabolic arcs. Defend the keep with tower archers, raise the drawbridge, and command your forces through a medieval-themed control panel.
