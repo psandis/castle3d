@@ -48,15 +48,16 @@ castle/
 ├── src/
 │   ├── main.js          # Scene, castle geometry, characters, animation loop
 │   ├── controls.js      # Button event handlers and camera movement
-│   ├── paths.json       # Knight and catapult motion path data
+│   └── paths.json       # Knight and catapult motion path data
+├── public/
+│   ├── textures/
+│   │   ├── knights/     # Knight FBX/GLB models (walk, run, attack)
+│   │   ├── archer/      # Archer GLB model
+│   │   ├── catapult/    # Catapult GLB model
+│   │   ├── bricks.jpg   # Stone wall texture
+│   │   ├── roof.jpg     # Roof tile texture
+│   │   └── grass.jpg    # Ground texture
 │   └── sounds/          # March loop and catapult launch audio
-├── textures/
-│   ├── knights/         # Knight FBX/GLB models (walk, run, attack)
-│   ├── archer/          # Archer GLB model
-│   ├── catapult/        # Catapult GLB model
-│   ├── bricks.jpg       # Stone wall texture
-│   ├── roof.jpg         # Roof tile texture
-│   └── grass.jpg        # Ground texture
 ├── index.html           # Entry point, splash screen, controls UI
 ├── vite.config.js       # Dev server config (port 5181)
 └── package.json
